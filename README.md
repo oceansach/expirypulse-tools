@@ -38,6 +38,15 @@ More platforms coming soon — Azure Key Vault, AWS Secrets Manager, AWS ACM, an
 Install-Module Microsoft.Graph -Scope CurrentUser
 ```
 
+**Permissions**
+
+These scripts use read-only permissions and never modify anything in your tenant or cloud environment.
+
+| Script | Permission Required | Type |
+|---|---|---|
+| Export-EntraAppCredentials.ps1 | Application.Read.All | Delegated (interactive login) |
+
+
 **Run the script:**
 ```powershell
 .\Export-EntraAppCredentials.ps1
@@ -71,16 +80,6 @@ The script exports a CSV with the following columns, ready to import directly in
 
 ---
 
-## Permissions
-
-These scripts use read-only permissions and never modify anything in your tenant or cloud environment.
-
-| Script | Permission Required | Type |
-|---|---|---|
-| Export-EntraAppCredentials.ps1 | Application.Read.All | Delegated (interactive login) |
-
----
-
 ## Roadmap
 
 - [ ] Azure Key Vault — secrets and certificates
@@ -94,7 +93,7 @@ These scripts use read-only permissions and never modify anything in your tenant
 
 ## About ExpiryPulse
 
-[ExpiryPulse](https://expirypulse.dev) is a credential expiry tracking and notification tool for IT teams and sysadmins. Track SSL certificates, API keys, client secrets, and any credential with an expiry date — and get notified before something breaks.
+[ExpiryPulse](https://expirypulse.dev) is a credential expiry tracking and notification tool for IT teams and sysadmins. Track SSL certificates, API keys, client secrets, and any credential with an expiry date — manage them with your team, assign owner per credential and get notified via email/Slack/Teams before something breaks.
 
 Free tier available. No enterprise contract required.
 
