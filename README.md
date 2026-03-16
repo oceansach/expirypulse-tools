@@ -1,10 +1,11 @@
 # expirypulse-tools
+
 PowerShell and Python scripts to export credentials and secrets from cloud platforms into ExpiryPulse — no manual entry required.
 
 ---
 
-> **Free visibility into your Entra ID credential expiry — in minutes.**  
-> Run the script, upload the CSV, and ExpiryPulse handles the rest.  
+> **Full visibility into your Entra ID credential expiry — in minutes.**
+> Run the script, upload the CSV, and ExpiryPulse handles the rest.
 > [Get started free at expirypulse.dev](https://expirypulse.dev) — no credit card required.
 
 ## Why This Exists
@@ -17,7 +18,7 @@ Manually entering credentials into any tracking tool is slow, error-prone, and t
 
 | Platform | Script | Language | What It Exports |
 |---|---|---|---|
-| Microsoft Entra ID | `entra-id/Export-EntraAppCredentials.ps1` | PowerShell | Expiry metadata only — credential names and expiry dates| 
+| Microsoft Entra ID | `entra-id/Export-EntraAppCredentials.ps1` | PowerShell | Expiry metadata only — credential names and expiry dates |
 
 **Secret values, keys, and passwords are never accessed, read, or exported.**
 
@@ -46,7 +47,6 @@ These scripts use read-only permissions and never modify anything in your tenant
 |---|---|---|
 | Export-EntraAppCredentials.ps1 | Application.Read.All | Delegated (interactive login) |
 
-
 **Run the script:**
 ```powershell
 .\Export-EntraAppCredentials.ps1
@@ -61,15 +61,27 @@ Export to a specific path:
 .\Export-EntraAppCredentials.ps1 -OutputPath "C:\exports\creds.csv"
 ```
 
+Include an audit file of app registrations with no trackable credentials:
+```powershell
+.\Export-EntraAppCredentials.ps1 -IncludeAudit
+```
+
+> When `-IncludeAudit` is specified, a second file `entra-app-audit.csv` is exported listing app registrations with no trackable credentials — useful for identifying orphaned or misconfigured apps.
+
+Combined:
+```powershell
+.\Export-EntraAppCredentials.ps1 -OutputPath "C:\exports\creds.csv" -IncludeAudit -AuditOutputPath "C:\exports\audit.csv"
+```
+
 **Output:**
 
 The script exports a CSV with the following columns, ready to import directly into ExpiryPulse:
 
 | Column | Example |
 |---|---|
-| name | MyApp — ClientSecret1 |
+| name | MyApp - ClientSecret1 |
 | service | Entra ID |
-| expiry | 2025-12-31 |
+| expiry | 2026-12-31 |
 | notes | App ID: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx \| Type: Client Secret |
 
 **Import into ExpiryPulse:**
@@ -77,6 +89,8 @@ The script exports a CSV with the following columns, ready to import directly in
 2. Click **Home -> Import CSV**
 3. Upload the exported CSV
 4. Done — your credentials are tracked and notifications are configured automatically
+
+When `-IncludeAudit` is used, a second file is exported with columns: `app_name`, `app_id`, `reason`.
 
 ---
 
