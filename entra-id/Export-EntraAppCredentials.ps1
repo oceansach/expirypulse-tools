@@ -8,6 +8,8 @@
     in your tenant. Extracts client secrets (password credentials)
     and certificates (key credentials) with their expiry dates,
     then exports them in ExpiryPulse's import format.
+    Optionally exports a separate audit CSV for apps with no trackable
+    credentials using the -IncludeAudit switch.
 
 .REQUIREMENTS
     Microsoft.Graph PowerShell SDK
@@ -19,12 +21,22 @@
     - Directory.Read.All (delegated or application)
 
 .PARAMETER OutputPath
-    Path for the exported CSV file.
+    Path for the ExpiryPulse import CSV file.
     Defaults to .\entra-app-credentials.csv
+
+.PARAMETER AuditOutputPath
+    Path for the audit CSV file (apps with no trackable credentials).
+    Defaults to .\entra-app-audit.csv
+    Only used when -IncludeAudit is specified.
+
+.PARAMETER IncludeAudit
+    Switch. When specified, also exports an audit CSV of app registrations
+    with no trackable credentials.
 
 .EXAMPLE
     .\Export-EntraAppCredentials.ps1
-    .\Export-EntraAppCredentials.ps1 -OutputPath "C:\exports\creds.csv"
+    .\Export-EntraAppCredentials.ps1 -IncludeAudit
+    .\Export-EntraAppCredentials.ps1 -OutputPath "C:\exports\creds.csv" -IncludeAudit -AuditOutputPath "C:\exports\audit.csv"
 
 .NOTES
     Author: ExpiryPulse
@@ -34,7 +46,13 @@
 [CmdletBinding()]
 param (
     [Parameter()]
-    [string]$OutputPath = ".\entra-app-credentials.csv"
+    [string]$OutputPath = ".\entra-app-credentials.csv",
+
+    [Parameter()]
+    [string]$AuditOutputPath = ".\entra-app-audit.csv",
+
+    [Parameter()]
+    [switch]$IncludeAudit
 )
 
 # -----------------------------------------------
@@ -91,15 +109,19 @@ Write-Host "Found $($apps.Count) app registrations." -ForegroundColor Green
 # -----------------------------------------------
 # Build export rows
 # -----------------------------------------------
-$rows = [System.Collections.Generic.List[PSCustomObject]]::new()
+$rows      = [System.Collections.Generic.List[PSCustomObject]]::new()
+$auditRows = [System.Collections.Generic.List[PSCustomObject]]::new()
 
 foreach ($app in $apps) {
+
+    $hasTrackableCredential = $false
 
     # --- Client Secrets (PasswordCredentials) ---
     foreach ($secret in $app.PasswordCredentials) {
 
         if ($null -eq $secret.EndDateTime) { continue }
 
+        $hasTrackableCredential = $true
         $expiry = $secret.EndDateTime.ToUniversalTime()
         $displayName = if ($secret.DisplayName) { $secret.DisplayName } else { "Unnamed Secret" }
 
@@ -116,6 +138,7 @@ foreach ($app in $apps) {
 
         if ($null -eq $cert.EndDateTime) { continue }
 
+        $hasTrackableCredential = $true
         $expiry = $cert.EndDateTime.ToUniversalTime()
         $displayName = if ($cert.DisplayName) { $cert.DisplayName } else { "Unnamed Certificate" }
 
@@ -126,25 +149,62 @@ foreach ($app in $apps) {
             notes   = "App ID: $($app.AppId) | Type: Certificate"
         })
     }
+
+    # --- Audit: apps with no trackable credentials ---
+    if ($IncludeAudit -and -not $hasTrackableCredential) {
+
+        $hasSecrets = $app.PasswordCredentials.Count -gt 0
+        $hasCerts   = $app.KeyCredentials.Count -gt 0
+
+        $reason = if ($hasSecrets -or $hasCerts) {
+            "Credentials present but no expiry date set (possibly federated)"
+        }
+        else {
+            "No credentials configured"
+        }
+
+        $auditRows.Add([PSCustomObject]@{
+            app_name = $app.DisplayName
+            app_id   = $app.AppId
+            reason   = $reason
+        })
+    }
 }
 
 # -----------------------------------------------
-# Export to CSV
+# Export credentials CSV (ExpiryPulse import)
 # -----------------------------------------------
+Write-Host ""
 if ($rows.Count -eq 0) {
-    Write-Host "No credentials found." -ForegroundColor Yellow
+    Write-Host "No trackable credentials found." -ForegroundColor Yellow
 }
 else {
     $rows | Export-Csv -Path $OutputPath -NoTypeInformation -Encoding UTF8
-    Write-Host ""
     Write-Host "Export complete." -ForegroundColor Green
     Write-Host "  Credentials exported : $($rows.Count)" -ForegroundColor White
     Write-Host "  Output file          : $OutputPath" -ForegroundColor White
     Write-Host ""
-    Write-Host "Ready to import into ExpiryPulse at https://expirypulse.dev" -ForegroundColor Cyan
+    Write-Host "$OutputPath is ready to import into ExpiryPulse at https://expirypulse.dev" -ForegroundColor Cyan
+}
+
+# -----------------------------------------------
+# Export audit CSV (optional)
+# -----------------------------------------------
+if ($IncludeAudit) {
+    Write-Host ""
+    if ($auditRows.Count -eq 0) {
+        Write-Host "All app registrations have trackable credentials." -ForegroundColor Green
+    }
+    else {
+        $auditRows | Export-Csv -Path $AuditOutputPath -NoTypeInformation -Encoding UTF8
+        Write-Host "Audit export complete." -ForegroundColor Yellow
+        Write-Host "  Apps with no trackable credentials : $($auditRows.Count)" -ForegroundColor White
+        Write-Host "  Audit file                         : $AuditOutputPath" -ForegroundColor White
+    }
 }
 
 # -----------------------------------------------
 # Disconnect
 # -----------------------------------------------
+Write-Host ""
 Disconnect-MgGraph | Out-Null
