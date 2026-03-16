@@ -1,6 +1,6 @@
 <#
 .SYNOPSIS
-    Exports Entra ID app registration client secrets and certificates
+    Exports Entra ID app registration secret and certificate expiry dates
     to a CSV file ready for import into ExpiryPulse.
 
 .DESCRIPTION
@@ -38,11 +38,25 @@ param (
 )
 
 # -----------------------------------------------
+# Check execution policy
+# -----------------------------------------------
+if ((Get-ExecutionPolicy) -eq 'Restricted') {
+    Write-Host "Execution policy is Restricted. Please run PowerShell with:" -ForegroundColor Yellow
+    Write-Host "  powershell -ExecutionPolicy Bypass -File .\Export-EntraAppCredentials.ps1" -ForegroundColor Cyan
+    exit 1
+}
+
+# -----------------------------------------------
 # Check Microsoft.Graph module
 # -----------------------------------------------
 if (-not (Get-Module -ListAvailable -Name Microsoft.Graph.Applications)) {
-    Write-Host "Microsoft.Graph module not found. Installing..." -ForegroundColor Yellow
-    Install-Module Microsoft.Graph -Scope CurrentUser -Force
+    Write-Host "Microsoft.Graph module not found." -ForegroundColor Yellow
+    Write-Host "Installing - this may take a minute..." -ForegroundColor Yellow
+    Install-Module Microsoft.Graph -Scope CurrentUser -Force -AllowClobber
+    Write-Host "Installation complete." -ForegroundColor Green
+}
+else {
+    Write-Host "Microsoft.Graph module found." -ForegroundColor Green
 }
 
 # -----------------------------------------------
@@ -90,7 +104,7 @@ foreach ($app in $apps) {
         $displayName = if ($secret.DisplayName) { $secret.DisplayName } else { "Unnamed Secret" }
 
         $rows.Add([PSCustomObject]@{
-            name    = "$($app.DisplayName) — $displayName"
+            name    = "$($app.DisplayName) - $displayName"
             service = "Entra ID"
             expiry  = $expiry.ToString("yyyy-MM-dd")
             notes   = "App ID: $($app.AppId) | Type: Client Secret"
@@ -106,7 +120,7 @@ foreach ($app in $apps) {
         $displayName = if ($cert.DisplayName) { $cert.DisplayName } else { "Unnamed Certificate" }
 
         $rows.Add([PSCustomObject]@{
-            name    = "$($app.DisplayName) — $displayName"
+            name    = "$($app.DisplayName) - $displayName"
             service = "Entra ID"
             expiry  = $expiry.ToString("yyyy-MM-dd")
             notes   = "App ID: $($app.AppId) | Type: Certificate"
@@ -118,7 +132,7 @@ foreach ($app in $apps) {
 # Export to CSV
 # -----------------------------------------------
 if ($rows.Count -eq 0) {
-    Write-Host "No credentials found matching the criteria." -ForegroundColor Yellow
+    Write-Host "No credentials found." -ForegroundColor Yellow
 }
 else {
     $rows | Export-Csv -Path $OutputPath -NoTypeInformation -Encoding UTF8
