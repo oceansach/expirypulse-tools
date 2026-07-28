@@ -106,6 +106,22 @@ catch {
 
 Write-Host "Found $($apps.Count) app registrations." -ForegroundColor Green
 
+# ExpiryPulse caps credential 'name' at 100 chars AND dedups the CSV import on
+# name so each name must be BOTH <=100 chars and unique per credential. We keep
+# the app + credential label readable but always preserve an 8-char KeyId suffix
+# (the only guaranteed-unique, stable per-credential identifier), so multiple
+# secrets/certs on one app never collapse into a single imported row.
+function Format-CredentialName {
+    param([string]$AppName, [string]$CredLabel, [string]$KeyId)
+    $suffix = " ($($KeyId.Substring(0,8)))"          # unique per cred, never trimmed
+    $label  = "$AppName - $CredLabel"
+    $budget = 100 - $suffix.Length
+    if ($label.Length -gt $budget) {
+        $label = $label.Substring(0, $budget - 3) + "..."
+    }
+    return "$label$suffix"
+}
+
 # -----------------------------------------------
 # Build export rows
 # -----------------------------------------------
@@ -116,7 +132,7 @@ foreach ($app in $apps) {
 
     $hasTrackableCredential = $false
 
-    # --- Client Secrets (PasswordCredentials) ---
+        # --- Client Secrets (PasswordCredentials) ---
     foreach ($secret in $app.PasswordCredentials) {
 
         if ($null -eq $secret.EndDateTime) { continue }
@@ -126,10 +142,10 @@ foreach ($app in $apps) {
         $displayName = if ($secret.DisplayName) { $secret.DisplayName } else { "Unnamed Secret" }
 
         $rows.Add([PSCustomObject]@{
-            name    = "$($app.DisplayName) - $displayName"
+            name    = Format-CredentialName -AppName $app.DisplayName -CredLabel $displayName -KeyId $secret.KeyId
             service = "Entra ID"
             expiry  = $expiry.ToString("yyyy-MM-dd")
-            notes   = "App ID: $($app.AppId) | Type: Client Secret"
+            notes   = "App ID: $($app.AppId) | Type: Client Secret | Key ID: $($secret.KeyId)"
         })
     }
 
@@ -143,12 +159,13 @@ foreach ($app in $apps) {
         $displayName = if ($cert.DisplayName) { $cert.DisplayName } else { "Unnamed Certificate" }
 
         $rows.Add([PSCustomObject]@{
-            name    = "$($app.DisplayName) - $displayName"
+            name    = Format-CredentialName -AppName $app.DisplayName -CredLabel $displayName -KeyId $cert.KeyId
             service = "Entra ID"
             expiry  = $expiry.ToString("yyyy-MM-dd")
-            notes   = "App ID: $($app.AppId) | Type: Certificate"
+            notes   = "App ID: $($app.AppId) | Type: Certificate | Key ID: $($cert.KeyId)"
         })
     }
+
 
     # --- Audit: apps with no trackable credentials ---
     if ($IncludeAudit -and -not $hasTrackableCredential) {
