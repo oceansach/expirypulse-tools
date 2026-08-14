@@ -1,16 +1,16 @@
 # expirypulse-tools
 
-PowerShell and Python scripts to export credentials and secrets from cloud platforms into ExpiryPulse — no manual entry required.
+PowerShell and Python scripts to export credentials and secrets from cloud platforms into ExpiryPulse, with no manual entry required.
 
 ---
 
-> **Full visibility into your Entra ID credential expiry — in minutes.**
+> **Full visibility into your Entra ID credential expiry, in minutes.**
 > Run the script, upload the CSV, and ExpiryPulse handles the rest.
-> [Get started free at expirypulse.dev](https://expirypulse.dev) — no credit card required.
+> [Get started free at expirypulse.dev](https://expirypulse.dev). No credit card required.
 
 ## Why This Exists
 
-Manually entering credentials into any tracking tool is slow, error-prone, and the kind of task that never actually gets done. These scripts do the work for you — connect to your platform, pull every credential and its expiry date, and export a CSV that imports directly into ExpiryPulse with no reformatting required.
+Manually entering credentials into any tracking tool is slow, error-prone, and the kind of task that never actually gets done. These scripts do the work for you: connect to your platform, pull every credential and its expiry date, and export a CSV that imports directly into ExpiryPulse with no reformatting required.
 
 ---
 
@@ -18,17 +18,17 @@ Manually entering credentials into any tracking tool is slow, error-prone, and t
 
 | Platform | Script | Language | What It Exports |
 |---|---|---|---|
-| Microsoft Entra ID | `entra-id/Export-EntraAppCredentials.ps1` | PowerShell | Expiry metadata only — credential names and expiry dates |
+| Microsoft Entra ID | `entra-id/Export-EntraAppCredentials.ps1` | PowerShell | Expiry metadata only: credential names and expiry dates |
 
 **Secret values, keys, and passwords are never accessed, read, or exported.**
 
-More platforms coming soon — Azure Key Vault, AWS Secrets Manager, AWS ACM, and Windows Certificate Store.
+More platforms coming soon: Azure Key Vault, AWS Secrets Manager, AWS ACM, and Windows Certificate Store.
 
 ---
 
 ## Getting Started
 
-### Entra ID — App Registration Secrets & Certificates
+### Entra ID: App Registration Secrets & Certificates
 
 **Requirements**
 - PowerShell 5.1 or later (Windows PowerShell or PowerShell 7+)
@@ -54,6 +54,30 @@ These scripts use read-only permissions and never modify anything in your tenant
 
 This will open a browser window for interactive login. MFA is supported natively. Sign in with an account that has at least **Application.Read.All** permissions.
 
+> **Getting `... is not digitally signed`?**
+>
+> Windows blocks downloaded scripts by default. The file arrives tagged with the
+> Mark of the Web, and under the common `RemoteSigned` execution policy that tag
+> means it needs a publisher signature to run. Nothing is wrong with the script.
+> Windows simply cannot tell where it came from.
+>
+> Clear the download tag, which is the narrowest fix and only affects this file:
+> ```powershell
+> Unblock-File .\Export-EntraAppCredentials.ps1
+> ```
+>
+> If your policy is `AllSigned`, unblocking is not enough. Allow unsigned
+> scripts for the current window only. This affects nothing outside the
+> PowerShell session you are in and disappears when you close it:
+> ```powershell
+> Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
+> ```
+>
+> Check what you are actually running under with `Get-ExecutionPolicy -List`.
+> Please don't set `Bypass` machine-wide to run a one-off export. Read the
+> script first if you'd rather verify it than trust it. It is about 200 lines
+> and does nothing but read and write a CSV.
+
 **Optional parameters:**
 
 Export to a specific path:
@@ -66,7 +90,7 @@ Include an audit file of app registrations with no trackable credentials:
 .\Export-EntraAppCredentials.ps1 -IncludeAudit
 ```
 
-> When `-IncludeAudit` is specified, a second file `entra-app-audit.csv` is exported listing app registrations with no trackable credentials — useful for identifying orphaned or misconfigured apps.
+> When `-IncludeAudit` is specified, a second file `entra-app-audit.csv` is exported listing app registrations with no trackable credentials, useful for identifying orphaned or misconfigured apps.
 
 Combined:
 ```powershell
@@ -98,19 +122,19 @@ The Key ID is the only stable, guaranteed-unique identifier a credential has, so
 1. Log in to [expirypulse.dev](https://expirypulse.dev)
 2. Click **Home -> Import CSV**
 3. Upload the exported CSV
-4. Done — your credentials are tracked and notifications are configured automatically
+4. Done. Your credentials are tracked and notifications are configured automatically
 
 When `-IncludeAudit` is used, a second file is exported with columns: `app_name`, `app_id`, `reason`.
 
 #### Re-running the export later
 
-Entra never changes an existing credential's expiry. `endDateTime` is fixed when the credential is created, and Microsoft Graph has no update operation for it — only `addPassword` and `removePassword`. Rotating a secret therefore always produces a **new credential with a new Key ID**, never a modified one.
+Entra never changes an existing credential's expiry. `endDateTime` is fixed when the credential is created, and Microsoft Graph has no update operation for it, only `addPassword` and `removePassword`. Rotating a secret therefore always produces a **new credential with a new Key ID**, never a modified one.
 
 That makes repeat imports predictable:
 
 | In your tenant | Name produced | Result on import |
 |---|---|---|
-| Credential unchanged | identical to last export | Skipped as a duplicate. Correct — its expiry cannot have changed. |
+| Credential unchanged | identical to last export | Skipped as a duplicate. Correct: its expiry cannot have changed. |
 | Credential rotated | new Key ID, so a new name | Imported as a new credential. |
 | Credential deleted | absent from the CSV | The existing ExpiryPulse row stays. |
 
@@ -120,7 +144,7 @@ The last row is the one to watch. A credential removed in Entra is **not** remov
 
 ## Roadmap
 
-- [ ] Azure Key Vault — secrets and certificates
+- [ ] Azure Key Vault: secrets and certificates
 - [ ] AWS Secrets Manager
 - [ ] AWS Certificate Manager (ACM)
 - [ ] Windows Certificate Store
@@ -131,7 +155,7 @@ The last row is the one to watch. A credential removed in Entra is **not** remov
 
 ## About ExpiryPulse
 
-[ExpiryPulse](https://expirypulse.dev) is a credential expiry tracking and notification tool for IT teams and sysadmins. Track SSL certificates, API keys, client secrets, and any credential with an expiry date — manage them with your team, assign owner per credential and get notified via email/Slack/Teams before something breaks.
+[ExpiryPulse](https://expirypulse.dev) is a credential expiry tracking and notification tool for IT teams and sysadmins. Track SSL certificates, API keys, client secrets, and any credential with an expiry date. Manage them with your team, assign owner per credential and get notified via email/Slack/Teams before something breaks.
 
 Free tier available. No enterprise contract required.
 
@@ -139,6 +163,6 @@ Free tier available. No enterprise contract required.
 
 ## License
 
-The scripts in this repository are MIT licensed — free to use, modify, and distribute. See [LICENSE](./LICENSE) for details.
+The scripts in this repository are MIT licensed, free to use, modify, and distribute. See [LICENSE](./LICENSE) for details.
 
 [ExpiryPulse](https://expirypulse.dev) is not covered by this license.
