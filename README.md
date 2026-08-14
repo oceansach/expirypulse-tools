@@ -79,10 +79,20 @@ The script exports a CSV with the following columns, ready to import directly in
 
 | Column | Example |
 |---|---|
-| name | MyApp - ClientSecret1 |
+| name | MyApp - ClientSecret1 (a1b2c3d4) |
 | service | Entra ID |
 | expiry | 2026-12-31 |
-| notes | App ID: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx \| Type: Client Secret |
+| notes | App ID: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx \| Type: Client Secret \| Key ID: a1b2c3d4-xxxx-xxxx-xxxx-xxxxxxxxxxxx |
+
+Certificates export identically, with `Type: Certificate` in the notes.
+
+#### Why each name ends in `(a1b2c3d4)`
+
+Those eight characters are the start of the credential's **Key ID**, and they are load-bearing rather than decorative.
+
+A single app registration often holds several secrets and certificates, and Entra happily lets them share a display name. ExpiryPulse de-duplicates a CSV import on `name`, so without something unique per credential, two secrets from the same app would collapse into one imported row and the second would be silently dropped.
+
+The Key ID is the only stable, guaranteed-unique identifier a credential has, so it is always preserved. Names are capped at 100 characters to match ExpiryPulse's limit; when the app and credential names are too long together, the **label is truncated with `...` and the suffix is appended afterwards**, so the distinguishing part never gets cut off.
 
 **Import into ExpiryPulse:**
 1. Log in to [expirypulse.dev](https://expirypulse.dev)
@@ -91,6 +101,20 @@ The script exports a CSV with the following columns, ready to import directly in
 4. Done — your credentials are tracked and notifications are configured automatically
 
 When `-IncludeAudit` is used, a second file is exported with columns: `app_name`, `app_id`, `reason`.
+
+#### Re-running the export later
+
+Entra never changes an existing credential's expiry. `endDateTime` is fixed when the credential is created, and Microsoft Graph has no update operation for it — only `addPassword` and `removePassword`. Rotating a secret therefore always produces a **new credential with a new Key ID**, never a modified one.
+
+That makes repeat imports predictable:
+
+| In your tenant | Name produced | Result on import |
+|---|---|---|
+| Credential unchanged | identical to last export | Skipped as a duplicate. Correct — its expiry cannot have changed. |
+| Credential rotated | new Key ID, so a new name | Imported as a new credential. |
+| Credential deleted | absent from the CSV | The existing ExpiryPulse row stays. |
+
+The last row is the one to watch. A credential removed in Entra is **not** removed from ExpiryPulse, because a credential missing from a CSV is indistinguishable from one you simply did not export this time. After rotating, delete the superseded row in ExpiryPulse so it stops reporting an expiry for a credential that no longer exists.
 
 ---
 
