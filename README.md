@@ -109,19 +109,6 @@ It is worth reading once before your second export.
 - [ ] GitHub fine-grained personal access tokens
 - [ ] AWS Secrets Manager: rotation schedules rather than expiry dates, see below
 
-**Not planned, and why.** Two things people reasonably expect here have no expiry
-to collect. Stripe dashboard API keys never expire; only short-lived Stripe CLI
-keys do, and those are ephemeral developer tokens nobody keeps a register of.
-GitHub Actions secrets have no expiry either, which is why the entry above
-targets personal access tokens instead, where organisations default to a
-366-day maximum lifetime.
-
-AWS Secrets Manager is listed with a caveat: it exposes `NextRotationDate`, a
-rotation schedule, not an expiry. That field is null when rotation is disabled,
-so a naive collector would stay silent about precisely the secrets most worth
-worrying about. Any script here will have to treat "no rotation configured" as
-a finding in its own right rather than skipping the row.
-
 ---
 
 ## About ExpiryPulse
