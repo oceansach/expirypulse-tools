@@ -107,7 +107,6 @@ It is worth reading once before your second export.
 - [ ] Windows Certificate Store: machine and user stores, locally or across a fleet
 - [ ] AWS Certificate Manager (ACM)
 - [ ] GitHub fine-grained personal access tokens
-- [ ] AWS Secrets Manager: rotation schedules rather than expiry dates, see below
 
 ---
 
