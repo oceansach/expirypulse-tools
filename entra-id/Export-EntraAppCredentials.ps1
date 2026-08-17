@@ -8,6 +8,11 @@
     in your tenant. Extracts client secrets (password credentials)
     and certificates (key credentials) with their expiry dates,
     then exports them in ExpiryPulse's import format.
+
+    Each row carries a tags column so ExpiryPulse does not have to
+    guess tags from the name. Without it, an app certificate named
+    "APICert" matches ExpiryPulse's "cert" keyword and is tagged SSL,
+    which it is not.
     Optionally exports a separate audit CSV for apps with no trackable
     credentials using the -IncludeAudit switch.
 
@@ -146,6 +151,7 @@ foreach ($app in $apps) {
             service = "Entra ID"
             expiry  = $expiry.ToString("yyyy-MM-dd")
             notes   = "App ID: $($app.AppId) | Type: Client Secret | Key ID: $($secret.KeyId)"
+            tags    = "ENTRA-ID;CLIENT-SECRET"
         })
     }
 
@@ -163,6 +169,7 @@ foreach ($app in $apps) {
             service = "Entra ID"
             expiry  = $expiry.ToString("yyyy-MM-dd")
             notes   = "App ID: $($app.AppId) | Type: Certificate | Key ID: $($cert.KeyId)"
+            tags    = "ENTRA-ID;CERTIFICATE"
         })
     }
 
