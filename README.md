@@ -65,15 +65,30 @@ and does nothing but read metadata and write a CSV.
 
 ## The CSV Format
 
-Every script emits the same four columns, which are exactly what ExpiryPulse's
+Every script emits the same five columns, which are exactly what ExpiryPulse's
 importer expects:
 
 | Column | Required | Notes |
 |---|---|---|
 | name | yes | Maximum 100 characters. Must be unique per credential. |
-| service | no | Free text, e.g. `Entra ID`. Used for grouping and tags. |
+| service | no | Free text, e.g. `Entra ID`. Used for grouping. |
 | expiry | yes | `yyyy-MM-dd`. Dates in the past are accepted and tracked. |
 | notes | no | Free text. Scripts put platform identifiers here. |
+| tags | no | Semicolon separated, e.g. `ENTRA-ID;CERTIFICATE`. |
+
+### About the tags column
+
+Leave it out, or leave a cell blank, and ExpiryPulse generates tags by matching
+keywords in the name and service. That guessing is wrong often enough to matter:
+an Entra app certificate named `APICert` matches the `cert` keyword and gets
+tagged `SSL`, which it is not. The scripts here supply tags explicitly because
+they know what they exported.
+
+Tags are stored uppercase, use letters, numbers and hyphens, and are capped at
+20 characters and 10 per credential. Anything outside that is dropped rather
+than mangled, so a tag with an accent in it disappears instead of arriving
+truncated. You can review and remove any of them in the import preview before
+committing.
 
 ### Why names look the way they do
 
@@ -103,10 +118,10 @@ It is worth reading once before your second export.
 
 ## Roadmap
 
-- [ ] Azure Key Vault: secrets, certificates, and keys
 - [ ] Windows Certificate Store: machine and user stores, locally or across a fleet
 - [ ] AWS Certificate Manager (ACM)
 - [ ] GitHub fine-grained personal access tokens
+- [ ] ...more
 
 ---
 
