@@ -80,8 +80,14 @@ The audit file has columns `app_name`, `app_id`, `reason`.
 | service | Entra ID |
 | expiry | 2026-12-31 |
 | notes | App ID: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx \| Type: Client Secret \| Key ID: a1b2c3d4-xxxx-xxxx-xxxx-xxxxxxxxxxxx |
+| tags | ENTRA-ID;CLIENT-SECRET |
 
-Certificates export identically, with `Type: Certificate` in the notes.
+Certificates export identically, with `Type: Certificate` in the notes and
+`ENTRA-ID;CERTIFICATE` in the tags.
+
+Tags are supplied rather than left to ExpiryPulse's keyword matching, which
+would tag an app certificate named `APICert` as `SSL` because the name contains
+"cert". You can review and remove any of them in the import preview.
 
 ### Why each name ends in `(a1b2c3d4)`
 
