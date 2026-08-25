@@ -119,15 +119,24 @@ That makes repeat imports predictable:
 
 | In your tenant | Name produced | Result on import |
 |---|---|---|
-| Credential unchanged | identical to last export | Skipped as a duplicate. Correct, since its expiry cannot have changed. |
-| Credential rotated | new Key ID, so a new name | Imported as a new credential. |
+| Credential unchanged | identical to last export | Left as it is. The importer compares the two dates and finds nothing newer. |
+| Credential rotated | new Key ID, so a new name | Imported as a new credential, alongside the old row. |
 | Credential deleted | absent from the CSV | The existing ExpiryPulse row stays. |
 
-The last row is the one to watch. A credential removed in Entra is **not**
-removed from ExpiryPulse, because a credential missing from a CSV is
-indistinguishable from one you simply did not export this time. After rotating,
-delete the superseded row in ExpiryPulse so it stops reporting an expiry for a
-credential that no longer exists.
+On other platforms a repeat import can refresh an existing row's expiry in
+place. That never happens here, and not because the importer treats Entra
+specially: a changed Entra credential is always a *different* credential with a
+different Key ID, so it never matches an existing name to begin with.
+
+**This means rotation still leaves you with two rows.** The old one keeps
+reporting an expiry for a secret nobody can renew, and it counts against your
+plan's credential limit. Delete the superseded row after rotating. There is no
+way for the importer to work this out for you today, because nothing in the CSV
+says the new credential replaces the old one.
+
+The deleted-credential row is worth the same attention. A credential removed in
+Entra is **not** removed from ExpiryPulse, because a credential missing from a
+CSV is indistinguishable from one you simply did not export this time.
 
 ---
 
