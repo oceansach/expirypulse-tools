@@ -17,13 +17,16 @@
     credentials using the -IncludeAudit switch.
 
 .REQUIREMENTS
-    Microsoft.Graph PowerShell SDK
-    Install-Module Microsoft.Graph -Scope CurrentUser
+    Two submodules of the Microsoft.Graph PowerShell SDK, not the whole thing:
+    Install-Module Microsoft.Graph.Authentication, Microsoft.Graph.Applications -Scope CurrentUser
+
+    The full Microsoft.Graph meta-module pulls in around forty packages and
+    takes several minutes. This script calls three cmdlets, all covered by
+    those two. If you already have the full SDK, nothing further is needed.
 
 .PERMISSIONS
-    Requires one of the following:
-    - Application.Read.All (delegated or application)
-    - Directory.Read.All (delegated or application)
+    Application.Read.All, delegated, granted at interactive sign-in.
+    Read-only: the script only calls Get-MgApplication and never writes.
 
 .PARAMETER OutputPath
     Path for the ExpiryPulse import CSV file.
@@ -63,23 +66,40 @@ param (
 # -----------------------------------------------
 # Check execution policy
 # -----------------------------------------------
-if ((Get-ExecutionPolicy) -eq 'Restricted') {
-    Write-Host "Execution policy is Restricted. Please run PowerShell with:" -ForegroundColor Yellow
-    Write-Host "  powershell -ExecutionPolicy Bypass -File .\Export-EntraAppCredentials.ps1" -ForegroundColor Cyan
+# A courtesy check rather than a real gate. Under either of these policies the
+# host usually refuses to load the file before this line ever runs, so the user
+# sees PowerShell's own error instead. It costs nothing to catch the
+# configurations where execution does reach here and say something useful.
+$executionPolicy = Get-ExecutionPolicy
+if ($executionPolicy -in @('Restricted', 'AllSigned')) {
+    Write-Host "Execution policy is $executionPolicy, which blocks this script." -ForegroundColor Yellow
+    Write-Host "Allow it for this window only - nothing outside this session changes:" -ForegroundColor Yellow
+    Write-Host "  Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass" -ForegroundColor Cyan
+    Write-Host "  .\Export-EntraAppCredentials.ps1" -ForegroundColor Cyan
+    if ($executionPolicy -eq 'AllSigned') {
+        Write-Host ""
+        Write-Host "Under AllSigned, Unblock-File is not enough on its own - an unsigned" -ForegroundColor Yellow
+        Write-Host "script needs a publisher signature no matter where it came from." -ForegroundColor Yellow
+    }
     exit 1
 }
 
 # -----------------------------------------------
 # Check Microsoft.Graph module
 # -----------------------------------------------
+# Only the two submodules this script actually uses. The check already looked
+# for Microsoft.Graph.Applications while the install pulled the full
+# Microsoft.Graph meta-module, which is roughly forty packages and several
+# minutes for the sake of one cmdlet. Anyone who already has the full SDK
+# satisfies the check and installs nothing.
 if (-not (Get-Module -ListAvailable -Name Microsoft.Graph.Applications)) {
-    Write-Host "Microsoft.Graph module not found." -ForegroundColor Yellow
-    Write-Host "Installing - this may take a minute..." -ForegroundColor Yellow
-    Install-Module Microsoft.Graph -Scope CurrentUser -Force -AllowClobber
+    Write-Host "Microsoft.Graph.Applications module not found." -ForegroundColor Yellow
+    Write-Host "Installing Microsoft.Graph.Authentication and Microsoft.Graph.Applications..." -ForegroundColor Yellow
+    Install-Module Microsoft.Graph.Authentication, Microsoft.Graph.Applications -Scope CurrentUser -Force -AllowClobber
     Write-Host "Installation complete." -ForegroundColor Green
 }
 else {
-    Write-Host "Microsoft.Graph module found." -ForegroundColor Green
+    Write-Host "Microsoft.Graph.Applications module found." -ForegroundColor Green
 }
 
 # -----------------------------------------------
