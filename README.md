@@ -139,10 +139,13 @@ It is worth reading once before your second export.
 
 ## Roadmap
 
+- [x] Microsoft Entra ID: app registration client secrets and certificates
+- [x] Internal certificates: hosts your perimeter hides, scanned from inside
+- [ ] AWS Certificate Manager (ACM): imported certificates, and certificates ACM has stopped being able to renew
 - [ ] Windows Certificate Store: machine and user stores, locally or across a fleet
-- [ ] AWS Certificate Manager (ACM)
-- [ ] GitHub fine-grained personal access tokens
-- [ ] ... more in the pipeline
+- [ ] GitHub fine-grained personal access tokens approved for an organization (requires a GitHub App - there is no API for a user's own tokens)
+
+*More in the pipeline.*
 
 ---
 
