@@ -1,0 +1,6 @@
+name,internal_host,service,expiry,notes,tags
+Intranet portal,intranet.corp.local,Internal PKI,,,INTERNAL
+Exchange OWA,mail.corp.local,Internal PKI,,,INTERNAL;EMAIL
+Firewall admin,fw01.corp.local:4443,Appliance,,,INTERNAL;APPLIANCE
+Jenkins,build.corp.local:8443,Internal PKI,,,INTERNAL;CI
+vCenter,vcenter.corp.local,Appliance,,,INTERNAL;APPLIANCE
