@@ -19,6 +19,7 @@ Manually entering credentials into any tracking tool is slow, error-prone, and t
 | Platform | Script | Language | Docs |
 |---|---|---|---|
 | Microsoft Entra ID | `entra-id/Export-EntraAppCredentials.ps1` | PowerShell | [entra-id/](./entra-id/) |
+| Internal certificates | `internal-certs/Scan-InternalCertificates.ps1` | PowerShell | [internal-certs/](./internal-certs/) |
 
 Each script has its own README covering the permissions it needs, how to run
 it, what its output looks like, and how repeat exports behave. Start there.
@@ -75,6 +76,13 @@ importer expects:
 | expiry | yes | `yyyy-MM-dd`. Dates in the past are accepted and tracked. |
 | notes | no | Free text. Scripts put platform identifiers here. |
 | tags | no | Semicolon separated, e.g. `ENTRA-ID;CERTIFICATE`. |
+
+The internal-certs script adds a sixth column, `internal_host`, because it has
+to know what to connect to. The importer reads only the columns above and
+ignores anything else, so the host list rides along harmlessly in the same file,
+which is exactly what lets you re-run that scan against it and re-import without
+keeping a second copy. See [internal-certs/](./internal-certs/).
+
 
 ### About the tags column
 
