@@ -135,6 +135,14 @@ for an intercepted host describe the proxy's certificate rather than yours.
 This is common in exactly the regulated environments this script is aimed at,
 and invisible if you only look at the date.
 
+Which is also why the issuer check is a heuristic and not a real one. **This
+script accepts any certificate without validating it**, deliberately: an
+internal CA is usually not in the trust store of the machine you run from, and
+refusing untrusted chains would reject exactly the certificates this exists to
+read. So it cannot distinguish a legitimate private CA from an interception by
+validating. Matching the issuer against known inspection vendors is the only
+signal left, and a vendor not on that list will pass without comment.
+
 The script checks the issuer of every certificate it reads against known
 inspection vendors — Zscaler, Netskope, Avast, Sophos, Fortinet, Palo Alto and
 others — and when it matches:
@@ -181,3 +189,17 @@ tell you.
 So internal hosts go in `internal_host`, which ExpiryPulse ignores entirely.
 Keeping the host in the file is what lets you re-run the scan; keeping it out
 of `ssl_domain` is what lets the re-import work.
+
+---
+
+## Before you rely on it
+
+MIT licensed, no warranty — see [LICENSE](../LICENSE). More practically: this
+reports what each host presented at the moment it connected, which is not
+always the certificate you think you are looking at. Spot-check a few dates
+against the hosts or your CA before treating the whole file as monitored, and
+treat anything tagged `TLS-INSPECTED-VERIFY` as unconfirmed until you have.
+
+It changes nothing on the hosts it touches. One TLS connection per host you
+listed, the certificate read, the connection closed. No ports are scanned, no
+hosts are discovered, and nothing is written anywhere except your CSV.
