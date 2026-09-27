@@ -71,7 +71,10 @@ if (-not (Test-Path -LiteralPath $Path)) {
 # -----------------------------------------------
 # Endpoint antivirus and corporate egress proxies terminate TLS, mint a
 # certificate on the fly from a locally-trusted root, and hand you that - so
-# the expiry you read is the proxy's, typically days away and meaningless.
+# the expiry you read is whatever the proxy put in its own certificate. Some
+# copy the original validity window verbatim and some mint their own short
+# one; either way the date is not the host's and nothing in the read says
+# which you got. The issuer and thumbprint are always the proxy's.
 # Common in exactly the regulated environments this is aimed at, and invisible
 # unless you look at the issuer.
 $InterceptionIssuers = @(
@@ -200,6 +203,17 @@ if ($columns -contains 'ssl_domain') {
     exit 1
 }
 
+# expiry is the one column this script exists to write, and a hand-rolled host
+# list often does not have it. Import-Csv objects refuse new properties, so
+# without this every row fails with a SetValueInvocationException while the
+# summary still reports a clean scan and the file is written with no dates in
+# it at all. Add the column instead of letting that happen.
+if ($columns -notcontains 'expiry') {
+    Write-Host "No expiry column in that file - adding one." -ForegroundColor DarkGray
+    $rows = @($rows | Select-Object *, @{ Name = 'expiry'; Expression = { '' } })
+    $columns = $rows[0].PSObject.Properties.Name
+}
+
 Write-Host ""
 Write-Host "Scanning $($rows.Count) host(s) from $Path" -ForegroundColor Cyan
 Write-Host ""
@@ -254,9 +268,9 @@ foreach ($row in $rows) {
         }
         $problems.Add([PSCustomObject]@{
             Host   = $target
-            Reason = "TLS inspection detected (issuer: $($result.Issuer)) - this expiry is the proxy's, not the real certificate's"
+            Reason = "TLS inspection detected (issuer: $($result.Issuer)) - this date came from the proxy's certificate, and the issuer and thumbprint are its own"
         })
-        Write-Host "  WARN    $target - intercepted by $($result.Issuer), expiry is NOT the real certificate's" -ForegroundColor Yellow
+        Write-Host "  WARN    $target - intercepted by $($result.Issuer), expiry may not be the real certificate's" -ForegroundColor Yellow
     }
     else {
         Write-Host "  OK      $target - expires $($row.expiry)" -ForegroundColor Green
@@ -273,7 +287,7 @@ Write-Host ""
 Write-Host "------------------------------------------------" -ForegroundColor Cyan
 Write-Host "  scanned      : $scanned" -ForegroundColor Green
 if ($intercepted -gt 0) {
-    Write-Host "  intercepted  : $intercepted   <-- dates below are the proxy's" -ForegroundColor Yellow
+    Write-Host "  intercepted  : $intercepted   <-- dates below are unconfirmed" -ForegroundColor Yellow
 }
 if ($failed -gt 0) {
     Write-Host "  unreachable  : $failed   <-- expiry left blank" -ForegroundColor Red
