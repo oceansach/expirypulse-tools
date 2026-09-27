@@ -118,12 +118,19 @@ Note that `notes` and `tags` are only written on the **first** import.
 Afterwards they belong to whoever edited them in the app, so the issuer and
 scan date shown there will not refresh. The CSV always has the current values.
 
-## When the expiry is not the real one
+## When the expiry may not be the real one
 
 Endpoint antivirus and corporate egress proxies terminate TLS. They intercept
 the connection, mint a certificate on the fly from a locally trusted root, and
-hand you that instead. The expiry you read is the proxy's — usually days away
-and completely unrelated to the certificate actually installed on the host.
+hand you that instead — so the expiry you read is whatever the proxy put in its
+own certificate, not what is installed on the host.
+
+How wrong that is depends on the vendor. Some mint a short-lived certificate of
+their own, and the date is days away and meaningless. Others copy the original
+validity window verbatim, and the date is correct — Avast does this, so it looks
+right and there is nothing in the read that tells you either way. The issuer and
+thumbprint are always the proxy's, whichever it is, so the `notes` this writes
+for an intercepted host describe the proxy's certificate rather than yours.
 
 This is common in exactly the regulated environments this script is aimed at,
 and invisible if you only look at the date.
@@ -134,16 +141,20 @@ others — and when it matches:
 
 ```
   WARN    intranet.corp.local - intercepted by Zscaler Root CA,
-          expiry is NOT the real certificate's
+          expiry may not be the real certificate's
 ```
 
 The row is tagged `TLS-INSPECTED-VERIFY` so it is obvious in ExpiryPulse too.
-The date still imports, because a wrong date you know about is more useful than
-no date — but treat it as a placeholder and confirm the real expiry from the
-host or your CA before relying on it.
+The date still imports, because a date you know to be unconfirmed is more useful
+than no date — but treat it that way, and check the real expiry against the host
+or your CA before relying on it.
 
 If you see this on every host, run the script from somewhere that is not behind
-the inspecting proxy.
+the inspecting proxy. Endpoint antivirus is the usual culprit rather than a
+network proxy: it hooks the local socket, so it intercepts internal hosts and
+even localhost, while an egress proxy is normally not in the path for traffic
+that never leaves your network. A management server or jump box without a web
+shield installed is the reliable place to run this from.
 
 ## Hosts it could not reach
 
